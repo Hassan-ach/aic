@@ -1,0 +1,11 @@
+[package]
+name = "aic"
+version = "0.1.0"
+edition = "2021"
+authorx = "bagi"
+description = "An AI-powered CLI tool for command execution and automation"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5.38", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
