@@ -2,27 +2,29 @@ use crate::core::executor::CommandExecutor;
 use std::char;
 use std::io::{self, Read, Write};
 
-pub async fn handle_command_execution(command_parts: &str, y: bool, v: bool) {
+pub fn handle_command_execution(command_parts: &str, y: bool) {
     if !y {
-        print!(
-            "are you sure you want to execute this :\" {} \" ",
-            command_parts
-        );
+        print!("Are you sure you want to execute this :\" {command_parts} \" ");
         io::stdout().flush().unwrap();
-        let ch = io::stdin().bytes().next().unwrap().unwrap() as char;
+        let ch = Read::bytes(io::stdin()).next().unwrap().unwrap() as char;
 
         if ch == 'N' || ch == 'n' {
-            println!("nice you don't");
+            println!("Exiting...");
             return;
         }
     }
-    match CommandExecutor::execute(command_parts, v) {
-        Ok((stdout_str, status_i32)) => {
-            // println!("stdout: \n{}", stdout_str);
-            println!("status code: {}", status_i32);
+    let _ = match CommandExecutor::execute_at_once(command_parts) {
+        Ok(o) => {
+            // println!("stdout: \n{}", o.output_str);
+            println!("status code: {}", o.status_code);
+            o.output_str
         }
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!(
+                "\x1b[31mCommand failed with exit code: {}\x1b[0m",
+                err.status_code
+            );
+            err.output_str
         }
-    }
+    };
 }

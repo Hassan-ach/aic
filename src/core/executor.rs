@@ -1,53 +1,55 @@
-use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+
+macro_rules! wrap_error {
+    ($msg:expr, $err:expr) => {
+        CommandOutput {
+            status_code: -1,
+            output_str: Some(format!("{}: {}", $msg, $err)),
+        }
+    };
+}
 
 #[derive(Debug)]
 pub struct CommandExecutor;
 
+#[derive(Debug)]
+pub struct CommandOutput {
+    pub status_code: i32,
+    pub output_str: Option<String>,
+}
 impl CommandExecutor {
-    pub fn execute(args: &str, v: bool) -> Result<(String, i32), String> {
+    pub fn execute_at_once(args: &str) -> Result<CommandOutput, CommandOutput> {
         //build the command
-        let mut cmd = get_shell_command(args, true);
+        let mut cmd = get_shell_command(args, false);
         cmd.stdin(Stdio::inherit());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::inherit());
+        cmd.stderr(Stdio::inherit());
 
         //run command async
         let mut child = cmd
             .spawn()
-            .map_err(|e| format!("Failed to start shell: {}", e))?;
+            .map_err(|e| wrap_error!("Failed to start shell", e))?;
 
-        // collecte chrunk from the output or error and creat a buffer reader
-        let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-        let stdout_buff = BufReader::new(stdout);
-        let stderr = child.stderr.take().ok_or("Failed to capture stdout")?;
-        let stderr_buff = BufReader::new(stderr);
-
-        // push the chrunks to full string
-        let mut full_output = String::new();
-        let mut full_error = String::new();
-        for line in stdout_buff.lines() {
-            let line = line.map_err(|e| e.to_string())?;
-            if v {
-                println!("{}", line); /* Real-time output*/
+        let status = match child.wait() {
+            Ok(s) => s,
+            Err(e) => {
+                return Err(CommandOutput {
+                    status_code: -1,
+                    output_str: Some(format!("Failed to wait for child: {e}")),
+                });
             }
-            full_output.push_str(&line);
-            full_output.push('\n');
-        }
-        for line in stderr_buff.lines() {
-            let line = line.map_err(|e| e.to_string())?;
-            full_error.push_str(&line);
-            full_error.push('\n');
-        }
-
-        let status = child.wait().map_err(|e| e.to_string())?;
+        };
+        let status_code = status.code().unwrap_or(-1);
         if status.success() {
-            Ok((full_output, status.code().unwrap_or(-1)))
+            Ok(CommandOutput {
+                status_code,
+                output_str: None,
+            })
         } else {
-            Err(format!(
-                "Command failed with status: {}, error: {}",
-                status, full_error
-            ))
+            Err(CommandOutput {
+                status_code,
+                output_str: None,
+            })
         }
     }
 }

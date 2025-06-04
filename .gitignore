@@ -1,2 +1,6 @@
 /target
+/docs
+/test
 *.pdf
+.env
+*.md

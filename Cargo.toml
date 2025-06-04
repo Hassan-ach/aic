@@ -1,11 +1,19 @@
 [package]
 name = "aic"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
-authorx = "bagi"
-description = "An AI-powered CLI tool for command execution and automation"
+author = "bagi"
+description = "An AI-powered CLI tool for command execution"
 license = "MIT"
 
+[lints.rust]
+# unused = "allow"
+
 [dependencies]
+base64 = "0.22.1"
 clap = { version = "4.5.38", features = ["derive"] }
+dotenv = "0.15.0"
+genai = "0.3.5"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 tokio = { version = "1", features = ["full"] }

@@ -1,8 +1,7 @@
-// use crate::commands::ask;
+use crate::commands::ask;
+use crate::commands::chat;
 use crate::commands::run;
-use crate::core::workflow;
 use clap::{Parser, Subcommand};
-// use tokio;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -21,44 +20,36 @@ enum Commands {
     Run {
         /// The command to execute
         #[arg(required = true)]
-        commands: Vec<String>,
+        command: String,
 
         /// without permitions
         #[arg(short, default_value_t = false)]
         y: bool,
-
-        ///verbos moode
-        #[arg(short, long, default_value_t = true)]
-        verbose: bool,
     },
-    // Ask {
-    //     /// The Prompt to sed it to LLM
-    //     prompt: String,
-    // },
+    Ask {
+        /// The Prompt to sed it to LLM
+        #[arg(required = true)]
+        prompt: String,
+
+        /// without permitions
+        #[arg(short, default_value_t = false)]
+        y: bool,
+    },
+    Chat {},
 }
 
 pub async fn run_cli(cli: Cli) {
-    let mut tasks_pool = workflow::TasksPool::new();
     match cli.command {
-        Commands::Run {
-            commands,
-            y,
-            verbose,
-        } => {
-            for ele in commands {
-                tasks_pool.add(workflow::Task::new(
-                    0,
-                    tokio::spawn(async move {
-                        //
-                        run::handle_command_execution(&ele, y, verbose).await;
-                    }),
-                ));
-            }
-        } // Commands::Ask { prompt } => {
-          //     //
-          //     // ask::send_request(&prompt);
-          // }
+        Commands::Run { command, y } => {
+            run::handle_command_execution(&command, y);
+        }
+        Commands::Ask { prompt, y } => {
+            ask::handle_prompt_req(&prompt, y)
+                .await
+                .unwrap_or_else(|e| eprintln!("{e}"));
+        }
+        Commands::Chat {} => {
+            chat::chat().await.unwrap_or_else(|e| eprintln!("{e}"));
+        }
     }
-
-    tasks_pool.join().await;
 }
